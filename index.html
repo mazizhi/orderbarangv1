@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pencatat Stok Gudang</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 15px; color: #333; min-height: 100vh; }
+        .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); overflow: hidden; }
+        header { background: linear-gradient(135deg, #4CAF50, #45a049); color: white; padding: 20px; text-align: center; }
+        header h1 { font-size: 1.5rem; margin-bottom: 5px; }
+        header p { opacity: 0.9; font-size: 0.9rem; }
+        .controls { padding: 15px; background: #f8f9fa; border-bottom: 1px solid #eee; }
+        .controls select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem; margin-bottom: 12px; background: white; }
+        .btn-export { width: 100%; background: linear-gradient(135deg, #FF9800, #e65100); color: white; font-weight: bold; font-size: 1.05rem; padding: 16px; border-radius: 10px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 10px; transition: all 0.3s; box-shadow: 0 3px 12px rgba(255,152,0,0.3); }
+        .btn-export:hover { transform: translateY(-2px); }
+        .btn-row { display: flex; gap: 10px; }
+        .btn-row button { flex: 1; padding: 12px; border: none; border-radius: 8px; font-size: 0.9rem; cursor: pointer; color: white; display: flex; align-items: center; justify-content: center; gap: 6px; }
+        .btn-blue { background: #2196F3; }
+        .btn-red { background: #ff5722; }
+        .stats { display: flex; justify-content: space-around; padding: 15px; background: #f8f9fa; border-top: 1px solid #eee; }
+        .stat-item { text-align: center; }
+        .stat-value { font-size: 1.5rem; font-weight: bold; color: #4CAF50; }
+        .stat-label { font-size: 0.8rem; color: #666; }
+        .product-section { padding: 15px; border-bottom: 1px solid #eee; }
+        .product-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 10px 15px; background: #f8f9fa; border-radius: 10px; border-left: 4px solid #4CAF50; }
+        .product-title { font-size: 1.1rem; color: #4CAF50; font-weight: bold; }
+        .product-stock { background: #4CAF50; color: white; padding: 5px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; }
+        .variant-list { display: grid; grid-template-columns: 1fr; gap: 8px; }
+        @media(min-width:500px){.variant-list{grid-template-columns:1fr 1fr;}}
+        .variant-item { display: flex; justify-content: space-between; align-items: center; padding: 11px 14px; background: #f9f9f9; border-radius: 8px; border-left: 4px solid #4CAF50; }
+        .variant-name { font-weight: 500; flex: 1; font-size: 0.95rem; }
+        .stock-controls { display: flex; align-items: center; gap: 8px; }
+        .stock-count { font-weight: bold; min-width: 38px; text-align: center; font-size: 1.1rem; color: #4CAF50; }
+        button { background: #4CAF50; color: white; border: none; border-radius: 5px; padding: 8px 12px; cursor: pointer; font-size: 1rem; transition: all 0.2s; display: flex; align-items: center; justify-content: center; }
+        .btn-dec { background: #f44336; }
+        .add-section { padding: 15px; background: #f8f9fa; }
+        .add-section p { color: #4CAF50; font-weight: bold; margin-bottom: 15px; }
+        .form-group { margin-bottom: 12px; }
+        input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem; }
+        input:focus { border-color: #4CAF50; outline: none; }
+        .btn-add { width: 100%; margin-top: 8px; padding: 12px; background: #2196F3; border-radius: 8px; font-weight: bold; color: white; border: none; cursor: pointer; }
+        .ps-row { display: flex; gap: 10px; margin-bottom: 12px; }
+        .ps-row select { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem; }
+        .ps-row button { background: #ff9800; padding: 6px 14px; font-size: 0.85rem; border-radius: 6px; border: none; color: white; cursor: pointer; }
+        .btn-pair { display: flex; gap: 10px; margin-top: 10px; }
+        .btn-pair button { flex: 1; }
+        @keyframes sc{0%{transform:scale(1)}50%{transform:scale(1.2)}100%{transform:scale(1)}}
+        .sc-anim{animation:sc .3s ease}
+
+        /* MODAL */
+        .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;align-items:flex-end;justify-content:center;}
+        .sheet{background:white;width:100%;max-width:600px;border-radius:20px 20px 0 0;padding:22px 20px 36px;max-height:90vh;overflow-y:auto;}
+        .handle{width:40px;height:4px;background:#ddd;border-radius:2px;margin:0 auto 18px;}
+        .sheet h2{font-size:1.15rem;font-weight:bold;color:#e65100;margin-bottom:6px;}
+        .sheet p{font-size:.87rem;color:#555;line-height:1.8;margin-bottom:14px;}
+        .note-box{background:#fff8e1;border-left:4px solid #FF9800;border-radius:0 10px 10px 0;padding:14px;margin-bottom:16px;font-size:.87rem;color:#333;line-height:1.9;}
+        .note-box b{color:#e65100;}
+        .success-box{background:#e8f5e9;border-left:4px solid #4CAF50;border-radius:0 10px 10px 0;padding:12px 14px;margin-bottom:14px;font-size:.87rem;color:#2e7d32;line-height:1.7;display:none;}
+        .btn-dl{width:100%;background:linear-gradient(135deg,#FF9800,#e65100);color:white;border:none;border-radius:12px;padding:16px;font-size:1.05rem;font-weight:bold;cursor:pointer;margin-bottom:10px;}
+        .btn-close{width:100%;background:#eee;color:#555;border:none;border-radius:12px;padding:13px;font-size:.95rem;cursor:pointer;}
+
+        .lap-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:center;justify-content:center;}
+        .lap-content{background:white;padding:20px;border-radius:12px;width:92%;max-width:500px;max-height:80vh;overflow-y:auto;}
+        .lap-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;}
+        .lap-text{background:#f8f9fa;padding:15px;border-radius:8px;margin-bottom:15px;white-space:pre-line;max-height:280px;overflow-y:auto;font-family:'Courier New',monospace;font-size:.82rem;line-height:1.5;}
+        .lap-btns{display:flex;gap:10px;}
+        .lap-btns button{flex:1;padding:12px;border:none;border-radius:8px;cursor:pointer;color:white;font-size:.9rem;}
+        .x-btn{background:none;border:none;font-size:1.5rem;cursor:pointer;color:#666;}
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>📦 Pencatat Stok Gudang</h1>
+        <p>Kelola stok & kirim ke Bapak dengan mudah</p>
+    </header>
+    <div class="controls">
+        <select id="filterProduk"><option value="all">Semua Produk</option></select>
+        <button class="btn-export" id="btnExport">📤 Update Data Stok ke Website</button>
+        <div class="btn-row">
+            <button class="btn-blue" id="btnLaporan">📊 Lihat Laporan</button>
+            <button class="btn-red" id="btnReset">🔄 Reset Stok</button>
+        </div>
+    </div>
+    <div class="stats">
+        <div class="stat-item"><div class="stat-value" id="sTotalProduk">0</div><div class="stat-label">Produk</div></div>
+        <div class="stat-item"><div class="stat-value" id="sTotalVarian">0</div><div class="stat-label">Varian</div></div>
+        <div class="stat-item"><div class="stat-value" id="sTotalStok">0</div><div class="stat-label">Total Stok</div></div>
+    </div>
+    <div id="produkContainer"></div>
+    <div class="add-section">
+        <p>➕ Tambah Produk / Varian</p>
+        <div class="form-group"><input type="text" id="inpProdukBaru" placeholder="Nama Produk Baru"></div>
+        <div class="ps-row">
+            <select id="selProdukAda"><option value="">Pilih produk yang sudah ada</option></select>
+            <button id="btnHapusProduk">Hapus</button>
+        </div>
+        <div class="form-group"><input type="text" id="inpVarianBaru" placeholder="Nama Varian Baru"></div>
+        <div class="btn-pair">
+            <button class="btn-add" id="btnTambahProduk">Tambah Produk</button>
+            <button class="btn-add" id="btnTambahVarian">Tambah Varian</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Export -->
+<div class="overlay" id="modalExport">
+    <div class="sheet">
+        <div class="handle"></div>
+        <h2>📤 Update Data ke Website</h2>
+        <div class="success-box" id="successBox">✅ <b>File berhasil dibuat!</b> Sekarang upload file <b>order.html</b> ini ke GitHub untuk update website Bapak.</div>
+        <div class="note-box">
+            <b>Cara kerja (2 menit, 2 minggu sekali):</b><br>
+            1️⃣ Klik tombol download di bawah<br>
+            2️⃣ Buka <b>github.com</b> → masuk ke repo gudang Anda<br>
+            3️⃣ Klik file <b>order.html</b> → klik ikon pensil ✏️<br>
+            4️⃣ Hapus semua isi → paste isi file baru → klik <b>Commit</b><br>
+            5️⃣ Website Bapak langsung terupdate otomatis ✅
+        </div>
+        <p>Bapak tidak perlu melakukan apa-apa. Link Bapak tetap sama, isinya yang berubah.</p>
+        <button class="btn-dl" id="btnDownload">⬇️ Download file order.html (untuk di-upload ke GitHub)</button>
+        <button class="btn-close" id="btnTutupExport">✕ Tutup</button>
+    </div>
+</div>
+
+<!-- Modal Laporan -->
+<div class="lap-modal" id="modalLaporan">
+    <div class="lap-content">
+        <div class="lap-header">
+            <span style="font-weight:bold;">📊 Laporan Stok</span>
+            <button class="x-btn" id="btnTutupLaporan">×</button>
+        </div>
+        <div class="lap-text" id="lapText"></div>
+        <div class="lap-btns">
+            <button style="background:#FF9800;" id="btnSalin">📋 Salin</button>
+            <button style="background:#25D366;" id="btnWaLaporan">📱 WhatsApp</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ── TEMPLATE ORDER.HTML ──────────────────────────────────────────────────────
+// File ini akan di-generate dan di-upload ke GitHub
+const ORDER_HTML_TEMPLATE = `<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Order Barang</title>
+<style>
+:root{--g:#25D366;--gd:#128C7E;--pu:#667eea;--pd:#764ba2}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0f4f8;color:#2d3748;min-height:100vh}
+.hdr{background:linear-gradient(135deg,var(--g),var(--gd));color:white;padding:18px 16px 14px;position:sticky;top:0;z-index:50;box-shadow:0 2px 12px rgba(37,211,102,.35)}
+.hdr h1{font-size:1.15rem;font-weight:700;margin-bottom:3px}
+.hdr .sub{font-size:.8rem;opacity:.88}
+.hdr .tgl{font-size:.76rem;opacity:.72;margin-top:2px}
+.info{background:#fff8e1;border-bottom:2px solid #ffe082;padding:11px 16px;font-size:.83rem;color:#795548;line-height:1.65}
+.info b{color:#e65100}
+.ps{margin:12px}
+.pl{background:linear-gradient(135deg,var(--pu),var(--pd));color:white;padding:9px 14px;border-radius:10px 10px 0 0;font-size:.85rem;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+.pl .st{font-size:.74rem;background:rgba(255,255,255,.22);padding:2px 10px;border-radius:10px}
+.vg{background:white;border-radius:0 0 12px 12px;padding:10px;display:grid;grid-template-columns:repeat(2,1fr);gap:8px;box-shadow:0 3px 12px rgba(0,0,0,.07)}
+.vc{border-radius:10px;border:2.5px solid #e2e8f0;background:#f8fafc;padding:10px 8px 8px;cursor:pointer;position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;min-height:80px;justify-content:center;user-select:none;-webkit-user-select:none;transition:all .12s ease}
+.vc:active{transform:scale(.93)}
+.vc.on{border-color:var(--g);background:#f0fdf4}
+.vn{font-size:.82rem;font-weight:600;color:#4a5568;line-height:1.3;margin-bottom:4px}
+.vc.on .vn{color:#1a5c3e}
+.vs{font-size:.7rem;color:#a0aec0;margin-bottom:5px}
+.sh{color:#e53935;font-weight:700}.sm{color:#e65100;font-weight:700}.sa{color:#38a169}
+.ob{position:absolute;top:-8px;right:-8px;background:var(--g);color:white;font-size:.82rem;font-weight:800;width:26px;height:26px;border-radius:50%;display:none;align-items:center;justify-content:center;border:2px solid white;box-shadow:0 2px 6px rgba(37,211,102,.5)}
+.vc.on .ob{display:flex}
+@keyframes pp{0%{transform:scale(.5)}60%{transform:scale(1.3)}100%{transform:scale(1)}}
+.pp{animation:pp .22s ease}
+.rw{margin:0 12px 12px;background:white;border-radius:12px;overflow:hidden;box-shadow:0 3px 12px rgba(0,0,0,.07)}
+.rh{padding:12px 14px;background:#f7fafc;border-bottom:1px solid #e2e8f0;font-weight:700;font-size:.9rem;color:#4a5568;display:flex;justify-content:space-between;align-items:center}
+.rc{background:var(--g);color:white;font-size:.75rem;padding:2px 10px;border-radius:10px}
+.rb{padding:10px 14px}
+.re{color:#cbd5e0;font-size:.85rem;text-align:center;padding:12px 0}
+.ri{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f7fafc;font-size:.85rem}
+.ri:last-child{border:none}
+.rn{color:#4a5568}.rj{font-weight:700;color:var(--gd)}
+.bra{width:calc(100% - 24px);margin:0 12px 12px;padding:11px;background:#fff0f0;color:#e53935;border:2px solid #fca5a5;border-radius:10px;font-size:.88rem;font-weight:600;cursor:pointer;display:block}
+.sp{height:90px}
+.fb{position:fixed;bottom:0;left:0;right:0;background:white;padding:12px 16px;box-shadow:0 -3px 15px rgba(0,0,0,.1);z-index:100}
+.bk{width:100%;background:linear-gradient(135deg,var(--g),var(--gd));color:white;border:none;border-radius:13px;padding:16px;font-size:1rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:all .2s}
+.bk:disabled{background:#cbd5e0;cursor:not-allowed}
+.cp{background:rgba(255,255,255,.28);padding:3px 11px;border-radius:12px;font-size:.85rem}
+.wo{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:200;align-items:flex-end;justify-content:center}
+.ws{background:white;width:100%;max-width:600px;border-radius:20px 20px 0 0;padding:20px 18px 36px;max-height:88vh;overflow-y:auto}
+.wh{width:40px;height:4px;background:#e2e8f0;border-radius:2px;margin:0 auto 16px}
+.wt{font-size:1.05rem;font-weight:700;color:var(--gd);margin-bottom:12px}
+.wp{background:#dcf8c6;border-radius:12px;padding:14px;white-space:pre-wrap;font-size:.86rem;line-height:1.75;color:#2d3748;margin-bottom:14px;max-height:260px;overflow-y:auto;border:1px solid #c8e6c9}
+.bs{width:100%;background:linear-gradient(135deg,var(--g),var(--gd));color:white;border:none;border-radius:12px;padding:15px;font-size:1rem;font-weight:700;cursor:pointer;margin-bottom:9px;display:block}
+.bc{width:100%;background:#FF9800;color:white;border:none;border-radius:12px;padding:13px;font-size:.95rem;cursor:pointer;margin-bottom:9px;display:block}
+.bx{width:100%;background:#edf2f7;color:#718096;border:none;border-radius:12px;padding:13px;font-size:.95rem;cursor:pointer;display:block}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div class="wo" id="wo">
+<div class="ws">
+<div class="wh"></div>
+<div class="wt">📱 Preview Pesan ke Sales</div>
+<div class="wp" id="wp"></div>
+<button class="bs" id="bs">📱 Buka WhatsApp & Kirim ke Sales</button>
+<button class="bc" id="bc">📋 Salin Pesan</button>
+<button class="bx" onclick="document.getElementById('wo').style.display='none'">✕ Tutup</button>
+</div>
+</div>
+<script>
+const D=##DATA##;
+const O={};
+function r(){
+const root=document.getElementById('root');
+const tgl=new Date(D.tgl).toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'});
+let h=\`<div class="hdr"><h1>🛒 Form Order Barang</h1><div class="sub">Tap barang yang mau di-order. Tap lagi = tambah jumlah.</div><div class="tgl">📅 Data stok: \${tgl}</div></div>
+<div class="info">👆 <b>Tap nama barang</b> untuk order. Tap <b>berkali-kali</b> untuk tambah jumlah.<br>Tap terus sampai angka balik ke 0 untuk batal.</div>\`;
+D.produk.forEach((p,pi)=>{
+const ts=p.variants.reduce((t,v)=>t+v.stock,0);
+h+=\`<div class="ps"><div class="pl"><span>📦 \${p.name}</span><span class="st">Stok: \${ts}</span></div><div class="vg">\`;
+p.variants.forEach((v,vi)=>{
+const sc=v.stock===0?'sh':v.stock<=3?'sm':'sa';
+const sl=v.stock===0?'⚠ HABIS':v.stock<=3?\`⚡ \${v.stock} sisa\`:\`✓ \${v.stock}\`;
+h+=\`<div class="vc" id="c\${pi}_\${vi}" onclick="t(\${pi},\${vi},'\${e(p.name)}','\${e(v.name)}')"><div class="ob" id="b\${pi}_\${vi}">0</div><div class="vn">\${v.name}</div><div class="vs \${sc}">\${sl}</div></div>\`;
+});
+h+=\`</div></div>\`;
+});
+h+=\`<div class="rw"><div class="rh">🧾 Ringkasan Order<span class="rc" id="rc">0 item</span></div><div class="rb" id="rb"><p class="re">Belum ada barang dipilih</p></div></div>
+<button class="bra" onclick="rst()">🗑 Reset Semua Pilihan</button>
+<div class="sp"></div>
+<div class="fb"><button class="bk" id="bk" onclick="wa()" disabled>📱 Kirim Order ke Sales via WhatsApp<span class="cp" id="cp">0 item</span></button></div>\`;
+root.innerHTML=h;
+}
+function e(s){return s.replace(/\\\\/g,'\\\\\\\\').replace(/'/g,"\\\\'")}
+function t(pi,vi,pn,vn){
+const k=pn+'|'+vn,prev=O[k]||0;
+O[k]=prev>=20?0:prev+1;
+if(!O[k])delete O[k];
+const jml=O[k]||0,c=document.getElementById('c'+pi+'_'+vi),b=document.getElementById('b'+pi+'_'+vi);
+if(c){jml>0?c.classList.add('on'):c.classList.remove('on');}
+if(b){b.textContent=jml;b.classList.remove('pp');void b.offsetWidth;b.classList.add('pp');}
+u();
+}
+function u(){
+const ks=Object.keys(O).filter(k=>O[k]>0),n=ks.length;
+const rc=document.getElementById('rc'),cp=document.getElementById('cp'),bk=document.getElementById('bk'),rb=document.getElementById('rb');
+if(rc)rc.textContent=n+' item';if(cp)cp.textContent=n+' item';if(bk)bk.disabled=n===0;
+if(!rb)return;
+rb.innerHTML=n===0?'<p class="re">Belum ada barang dipilih</p>':ks.map(k=>{const[p,v]=k.split('|');return '<div class="ri"><span class="rn">'+p+' – '+v+'</span><span class="rj">'+O[k]+' pack</span></div>';}).join('');
+}
+function rst(){
+if(!confirm('Reset semua pilihan?'))return;
+Object.keys(O).forEach(k=>delete O[k]);
+document.querySelectorAll('.vc').forEach(c=>c.classList.remove('on'));
+document.querySelectorAll('.ob').forEach(b=>b.textContent='0');
+u();
+}
+function wa(){
+const ks=Object.keys(O).filter(k=>O[k]>0);
+if(!ks.length){alert('Belum ada barang dipilih!');return;}
+const tgl=new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'});
+const g={};ks.forEach(k=>{const[p,v]=k.split('|');if(!g[p])g[p]=[];g[p].push({v,j:O[k]});});
+let m='🛒 *ORDER BARANG - '+tgl+'*\\n━━━━━━━━━━━━━━━━━━━\\n\\n';
+Object.keys(g).forEach(p=>{m+='📦 *'+p+'*\\n';g[p].forEach(i=>{m+='   • '+i.v+' → *'+i.j+' pack*\\n';});m+='\\n';});
+m+='━━━━━━━━━━━━━━━━━━━\\n📋 Total: *'+ks.length+' item*\\n\\nMohon segera diproses. Terima kasih 🙏';
+document.getElementById('wp').textContent=m;
+document.getElementById('wo').style.display='flex';
+document.getElementById('bs').onclick=()=>window.open('https://wa.me/?text='+encodeURIComponent(m),'_blank');
+document.getElementById('bc').onclick=()=>navigator.clipboard.writeText(m).then(()=>alert('Pesan disalin!'));
+}
+r();
+<\/script>
+</body>
+</html>`;
+
+// ── DATA PRODUK ────────────────────────────────────────────────────────────────
+let products = [
+    { name:"POP ICE", variants:[
+        {name:"Chocolate",stock:0},{name:"Strawberry",stock:0},{name:"Yoghurt Stroberi",stock:0},
+        {name:"Melon",stock:0},{name:"Mango",stock:0},{name:"Vanila Blue",stock:0},
+        {name:"Taro",stock:0},{name:"Permen Karet",stock:0},{name:"Durian",stock:0},
+        {name:"Anggur",stock:0},{name:"Leci",stock:0},{name:"Kacang Hijau",stock:0},
+        {name:"Cappucino",stock:0},{name:"Avocado",stock:0},{name:"Blueberry",stock:0},
+        {name:"Guava",stock:0},{name:"Es Doger",stock:0},{name:"Choco Cream",stock:0},
+        {name:"Coklat Susu",stock:0},{name:"Coklat Biskuit",stock:0},{name:"Choco Cheese",stock:0},
+        {name:"Cream Cheese",stock:0},{name:"Vanilla Latte",stock:0},{name:"Thunder",stock:0}
+    ]},
+    { name:"POP ICE SULTAN", variants:[
+        {name:"Cookies and Cream",stock:0},{name:"Popcorn Caramel",stock:0},
+        {name:"Italian Chocolato",stock:0},{name:"Cheese Red Velvet",stock:0},
+        {name:"Marie Biskuit",stock:0},{name:"Brown Sugar",stock:0},
+        {name:"Matcha Caramel",stock:0},{name:"Matcha Coffee",stock:0}
+    ]},
+    { name:"TOP ICE", variants:[
+        {name:"Stroberi",stock:0},{name:"Coklat",stock:0},{name:"Vanila Blue",stock:0},
+        {name:"Susu Vanila",stock:0},{name:"Melon",stock:0},{name:"Durian",stock:0},
+        {name:"Anggur",stock:0},{name:"Blueberry",stock:0},{name:"Kopi Moka",stock:0},
+        {name:"Cappucino",stock:0},{name:"Kacang Hijau",stock:0},{name:"Bizchoco",stock:0},
+        {name:"Choco Caramel",stock:0},{name:"Choco Ice Cream",stock:0},{name:"Choco Cheese",stock:0},
+        {name:"Choco Wafer",stock:0},{name:"Taro",stock:0},{name:"Bubble Gum",stock:0},
+        {name:"Mangga",stock:0},{name:"Momorio",stock:0},{name:"Malkist Keju",stock:0},
+        {name:"Wafer Keju",stock:0},{name:"Kopi Gula Aren",stock:0},{name:"Vanilla Latte",stock:0},
+        {name:"Mocca Freeze",stock:0}
+    ]},
+    { name:"TEH SISRI", variants:[
+        {name:"Gula Batu",stock:0},{name:"Apel",stock:0},{name:"Melati",stock:0},
+        {name:"Lemon",stock:0},{name:"Cincau",stock:0},{name:"Blackcurrant",stock:0},{name:"Mangga",stock:0}
+    ]},
+    { name:"FINTO", variants:[
+        {name:"Stroberi",stock:0},{name:"Anggur",stock:0},{name:"Jeruk",stock:0},{name:"Melon",stock:0}
+    ]}
+];
+
+// ── HELPER ─────────────────────────────────────────────────────────────────────
+function calcStok(p){return p.variants.reduce((t,v)=>t+v.stock,0);}
+
+function displayProducts(filter='all'){
+    const c=document.getElementById('produkContainer');c.innerHTML='';
+    const list=filter==='all'?products:products.filter(p=>p.name===filter);
+    list.forEach(prod=>{
+        const sec=document.createElement('div');sec.className='product-section';
+        const vl=document.createElement('div');vl.className='variant-list';
+        prod.variants.forEach(v=>{
+            const item=document.createElement('div');item.className='variant-item';
+            const pid=prod.name.replace(/\W/g,'_'),vid=v.name.replace(/\W/g,'_');
+            item.innerHTML=`<div class="variant-name">${v.name}</div>
+                <div class="stock-controls">
+                    <button class="btn-dec" onclick="ubahStok('${prod.name}','${v.name}',-1)">−</button>
+                    <div class="stock-count" id="s_${pid}_${vid}">${v.stock}</div>
+                    <button onclick="ubahStok('${prod.name}','${v.name}',1)">+</button>
+                </div>`;
+            vl.appendChild(item);
+        });
+        const pid=prod.name.replace(/\W/g,'_');
+        sec.innerHTML=`<div class="product-header"><div class="product-title">${prod.name}</div><div class="product-stock" id="ps_${pid}">Stok: ${calcStok(prod)}</div></div>`;
+        sec.appendChild(vl);c.appendChild(sec);
+    });
+    updateSelectors();updateStats();
+}
+
+function updateSelectors(){
+    const fp=document.getElementById('filterProduk'),sp=document.getElementById('selProdukAda');
+    fp.innerHTML='<option value="all">Semua Produk</option>';
+    sp.innerHTML='<option value="">Pilih produk yang sudah ada</option>';
+    products.forEach(p=>{
+        fp.innerHTML+=`<option value="${p.name}">${p.name}</option>`;
+        sp.innerHTML+=`<option value="${p.name}">${p.name}</option>`;
+    });
+}
+
+function updateStats(){
+    let tv=0,ts=0;products.forEach(p=>{tv+=p.variants.length;p.variants.forEach(v=>ts+=v.stock);});
+    document.getElementById('sTotalProduk').textContent=products.length;
+    document.getElementById('sTotalVarian').textContent=tv;
+    document.getElementById('sTotalStok').textContent=ts;
+}
+
+function ubahStok(pn,vn,d){
+    const p=products.find(x=>x.name===pn),v=p?.variants.find(x=>x.name===vn);
+    if(v&&(d>0||v.stock>0)){
+        v.stock+=d;
+        const pid=pn.replace(/\W/g,'_'),vid=vn.replace(/\W/g,'_');
+        const el=document.getElementById(`s_${pid}_${vid}`);
+        if(el){el.textContent=v.stock;el.classList.add('sc-anim');setTimeout(()=>el.classList.remove('sc-anim'),300);}
+        const ps=document.getElementById(`ps_${pid}`);if(ps)ps.textContent=`Stok: ${calcStok(p)}`;
+        updateStats();simpan();
+    }
+}
+
+// ── EXPORT ke order.html ────────────────────────────────────────────────────────
+document.getElementById('btnExport').addEventListener('click',()=>{
+    document.getElementById('successBox').style.display='none';
+    document.getElementById('modalExport').style.display='flex';
+});
+
+document.getElementById('btnDownload').addEventListener('click',()=>{
+    const data={tgl:new Date().toISOString(),produk:products};
+    const html=ORDER_HTML_TEMPLATE.replace('##DATA##', JSON.stringify(data));
+    const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download='order.html';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    document.getElementById('successBox').style.display='block';
+});
+
+document.getElementById('btnTutupExport').addEventListener('click',()=>document.getElementById('modalExport').style.display='none');
+
+// ── LAPORAN ────────────────────────────────────────────────────────────────────
+function buatLaporan(){
+    const tgl=new Date().toLocaleDateString('id-ID',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+    let t=`📦 LAPORAN STOK BARANG\n📅 ${tgl}\n\n`,total=0;
+    products.forEach(p=>{const ps=calcStok(p);total+=ps;t+=`🟢 ${p.name} (Total: ${ps})\n`;p.variants.forEach(v=>{t+=`   • ${v.name} = ${v.stock}\n`;});t+='\n';});
+    return t+`📊 TOTAL SEMUA STOK = ${total}`;
+}
+document.getElementById('btnLaporan').addEventListener('click',()=>{document.getElementById('lapText').textContent=buatLaporan();document.getElementById('modalLaporan').style.display='flex';});
+document.getElementById('btnTutupLaporan').addEventListener('click',()=>document.getElementById('modalLaporan').style.display='none');
+document.getElementById('btnSalin').addEventListener('click',()=>navigator.clipboard.writeText(document.getElementById('lapText').textContent).then(()=>alert('Tersalin!')));
+document.getElementById('btnWaLaporan').addEventListener('click',()=>window.open('https://wa.me/?text='+encodeURIComponent(buatLaporan()),'_blank'));
+
+// ── TAMBAH / HAPUS ─────────────────────────────────────────────────────────────
+document.getElementById('btnTambahProduk').addEventListener('click',()=>{
+    const n=document.getElementById('inpProdukBaru').value.trim(),v=document.getElementById('inpVarianBaru').value.trim();
+    if(!n){alert('Isi nama produk!');return;}if(products.find(p=>p.name===n)){alert('Produk sudah ada!');return;}
+    const np={name:n,variants:[]};if(v)np.variants.push({name:v,stock:0});
+    products.push(np);document.getElementById('inpProdukBaru').value='';document.getElementById('inpVarianBaru').value='';
+    displayProducts();simpan();alert('Produk ditambahkan!');
+});
+document.getElementById('btnTambahVarian').addEventListener('click',()=>{
+    const pn=document.getElementById('selProdukAda').value,vn=document.getElementById('inpVarianBaru').value.trim();
+    if(!pn){alert('Pilih produk!');return;}if(!vn){alert('Isi nama varian!');return;}
+    const p=products.find(x=>x.name===pn);
+    if(p){if(p.variants.find(v=>v.name===vn)){alert('Varian sudah ada!');return;}p.variants.push({name:vn,stock:0});document.getElementById('inpVarianBaru').value='';displayProducts();simpan();alert('Varian ditambahkan!');}
+});
+document.getElementById('btnHapusProduk').addEventListener('click',()=>{
+    const n=document.getElementById('selProdukAda').value;
+    if(!n){alert('Pilih produk!');return;}
+    if(confirm(`Hapus produk "${n}"?`)){products=products.filter(p=>p.name!==n);displayProducts();simpan();}
+});
+document.getElementById('filterProduk').addEventListener('change',function(){displayProducts(this.value);});
+document.getElementById('btnReset').addEventListener('click',()=>{
+    if(confirm('Reset semua stok ke 0?')){products.forEach(p=>p.variants.forEach(v=>v.stock=0));displayProducts();simpan();}
+});
+
+// ── STORAGE ────────────────────────────────────────────────────────────────────
+function simpan(){localStorage.setItem('stokGudang',JSON.stringify(products));}
+function muat(){const d=localStorage.getItem('stokGudang');if(d)products=JSON.parse(d);}
+muat();displayProducts();
+</script>
+</body>
+</html>
